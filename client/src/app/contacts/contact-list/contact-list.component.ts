@@ -33,7 +33,6 @@ export class ContactListComponent implements OnInit {
   displayContactList(): void {
     this.contactListService.getList().subscribe(data => {
       if(data.success){
-      
         this.contacts = data.contactList;
       } else {
         this.flashMessage.show('User must be logged-in', {cssClass: 'alert-danger', timeout: 3000})
