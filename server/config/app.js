@@ -4,14 +4,16 @@ let express = require('express');
 let path = require('path');
 let cookieParser = require('cookie-parser');
 let logger = require('morgan');
-let cors=require('cors');
+let cors = require('cors');
 
 // modules for authentication
 let session = require('express-session');
 let passport = require('passport');
-let passportJWT= require('passport-jwt');
-let JWTStrategy=passportJWT.Strategy;
-let ExtractJWT= passportJWT.ExtractJwt;
+
+let passportJWT = require('passport-jwt');
+let JWTStrategy = passportJWT.Strategy;
+let ExtractJWT = passportJWT.ExtractJwt;
+
 
 let passportLocal = require('passport-local');
 let localStrategy = passportLocal.Strategy;
@@ -46,7 +48,9 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, '../../public')));
 app.use(express.static(path.join(__dirname, '../../node_modules')));
+
 app.use(cors());
+
 // setup express-session
 app.use(session({
   secret: "SomeSecret",
@@ -74,25 +78,26 @@ passport.use(User.createStrategy());
 passport.serializeUser(User.serializeUser());
 passport.deserializeUser(User.deserializeUser());
 
-//this part verifies that the roken is sent by the user and is valid
-let jwtOptions={};
-jwtOptions.jwtFromRequest=ExtractJWT.fromAuthHeaderAsBearerToken();
-jwtOptions.secretOrKey=DB.secret;
+// this part verifies that the token is being sent by the user and is valid
+let jwtOptions = {};
+jwtOptions.jwtFromRequest = ExtractJWT.fromAuthHeaderAsBearerToken();
+jwtOptions.secretOrKey = DB.secret;
 
-let strategy= new JWTStrategy(jwtOptions,(jwt_payload,done)=>{
+let strategy = new JWTStrategy(jwtOptions, (jwt_payload,done) => {
   User.findById(jwt_payload.id)
-  .then(user => {
-    return done(null,user);
-  })
-  .catch(err => {
-    return done(err, false);
-  });
+    .then(user => {
+      return done(null,user);
+    })
+    .catch(err => {
+      return done(err, false);
+    });
 });
 
 passport.use(strategy);
 
+
 app.use('/api', indexRouter);
-app.use('/api/contact-list', contactRouter); //to do protect this section
+app.use('/api/contact-list', passport.authenticate('jwt', {session: false}), contactRouter);
 app.get('*', (req,res) => {
   res.sendfile(path.join(__dirname,'../../public/index.html'));
 });
