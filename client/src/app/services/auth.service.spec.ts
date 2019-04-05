@@ -1,12 +1,58 @@
-import { TestBed } from '@angular/core/testing';
+import { Injectable } from '@angular/core';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { User } from '../models/user';
+import {JwtHelperService} from '@auth0/angular-jwt';
 
-import { AuthService } from './auth.service';
+@Injectable({
+  providedIn: 'root'
+})
+export class AuthService {
+  user: User;
+  private authToken: any;
 
-describe('AuthService', () => {
-  beforeEach(() => TestBed.configureTestingModule({}));
+  private endpoint = 'https://comp308-w2019-asgn2.herokuapp.com/api/';
+  //private endpoint = 'http://localhost:3000/api/';
 
-  it('should be created', () => {
-    const service: AuthService = TestBed.get(AuthService);
-    expect(service).toBeTruthy();
-  });
-});
+  private httpOptions = {
+    headers: new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'Origin, X-Requested-With, Content-Type, Accept'
+    })
+  };
+
+  constructor(
+    private http: HttpClient,
+    private jwtService: JwtHelperService
+  ) {
+    this.user = new User();
+   }
+
+   public registerUser(user:User):Observable<any> {
+     return this.http.post<any>(this.endpoint + 'register', user, this.httpOptions);
+   }
+
+   public authenticateUser(user:User):Observable<any> {
+    return this.http.post<any>(this.endpoint + 'login', user, this.httpOptions);
+  }
+
+  public storeUserData(token: any, user: User): void {
+    localStorage.setItem('id_token', 'Bearer ' + token);
+    localStorage.setItem('user', JSON.stringify(user));
+    this.authToken = token;
+    this.user = user;
+  }
+
+  public logout(): Observable<any>{
+    this.authToken = null;
+    this.user = null;
+    localStorage.clear();
+
+    return this.http.get<any>(this.endpoint + 'logout', this.httpOptions);
+  }
+
+  public loggedIn(): boolean {
+    return !this.jwtService.isTokenExpired(this.authToken);
+  }
+}
